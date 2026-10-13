@@ -47,8 +47,6 @@ class Ppe4Climate(Ppe4Entity, ClimateEntity):
     _attr_translation_key = "thermostat"
     _attr_icon = "mdi:thermostat"
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
-    _attr_min_temp = MIN_TEMP
-    _attr_max_temp = MAX_TEMP
     _attr_target_temperature_step = 1.0
     _attr_hvac_modes = [HVACMode.HEAT]
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
@@ -56,6 +54,14 @@ class Ppe4Climate(Ppe4Entity, ClimateEntity):
     def __init__(self, coordinator, api, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "thermostat")
         self._api = api
+
+    @property
+    def min_temp(self) -> float:
+        return (self.coordinator.data or {}).get(1008, MIN_TEMP * 10) / 10
+
+    @property
+    def max_temp(self) -> float:
+        return (self.coordinator.data or {}).get(1009, MAX_TEMP * 10) / 10
 
     @property
     def current_temperature(self) -> float | None:
@@ -93,7 +99,7 @@ class Ppe4Climate(Ppe4Entity, ClimateEntity):
         temp = kwargs.get(ATTR_TEMPERATURE)
         if temp is None:
             return
-        temp = min(max(float(temp), MIN_TEMP), MAX_TEMP)
+        temp = min(max(float(temp), self.min_temp), self.max_temp)
         d = self.coordinator.data or {}
         profile = d.get(1389)
         if profile is not None and 1 <= profile <= 3:
