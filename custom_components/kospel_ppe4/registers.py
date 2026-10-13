@@ -15,6 +15,10 @@ WATER_YEAR = 1642
 WATER_TOTAL = 1646
 WATER_MONTHS = 1648
 
+SETPOINT = 1140  # setpoint in effect, follows the active profile (0.1 °C)
+ACTIVE_PROFILE = 1390  # 0 = manual, 1..3 = the profiles defined in the app
+MANUAL_SETPOINT = 1391  # profile n keeps its setpoint in MANUAL_SETPOINT + n
+
 
 def pair(data: dict[int, int], register: int) -> int | None:
     """Return the 32-bit counter starting at `register`, or None if not read yet."""

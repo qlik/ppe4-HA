@@ -18,6 +18,7 @@
 
 `POST /api/write`, **Content-Type: application/json**, body = `{"<rejestr>":<wartość>}`
 (form-urlencoded NIE działa — błąd -10). Zapis nieistniejącego rejestru zwraca OK ale nic nie robi.
+JSON musi być zwarty: `{"1390": 1}` ze spacją po dwukropku też kończy się błędem -10.
 
 ## Mapowanie rejestrów (potwierdzone na żywym urządzeniu)
 
@@ -28,10 +29,11 @@
 | 1137 | przepływ (tylko podczas poboru wody) | ×0.1 l/min |
 | 1138 | aktualna moc grzania (tylko podczas poboru) | ÷1000 kW |
 | 1139 / 1141 / 1145 | powiązane z grzaniem (do zbadania) | — |
-| 1140 | temperatura zadana (zapis tylko w trybie ręcznym) | ×0.1 °C |
-| 1390 | tryb: 0=profil, 1=ręczny | — |
-| 1391–1393 | Profile 1–3 (zapis działa) | ×0.1 °C |
-| 1394/1395 | limity profili | ×0.1 °C |
+| 1140 | temperatura zadana aktualnie obowiązująca (podąża za 1390) | ×0.1 °C |
+| 1390 | aktywny profil: 0=ręczny, 1–3=profile z aplikacji (nazwy nadaje użytkownik; zapis działa) | — |
+| 1391 | nastawa ręczna (zapis działa) | ×0.1 °C |
+| 1392–1394 | temperatury profili 1–3 (zapis działa) | ×0.1 °C |
+| 1395 | nieznane (700) | ×0.1 °C |
 | 1008/1009 | min/max nastawy (300..600) | ×0.1 °C |
 | 1143/1144 | moce (15000, 10000 W) | — |
 | 1448 / 1576 | dzień tygodnia (1 = poniedziałek), przed tablicą dni energii / wody | — |

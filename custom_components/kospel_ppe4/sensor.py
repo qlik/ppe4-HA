@@ -68,7 +68,6 @@ async def async_setup_entry(
                     SensorDeviceClass.WATER, 0.1, monthly=True),
         Ppe4Counter(coordinator, entry, WATER_YEAR, "water_year", UnitOfVolume.LITERS,
                     SensorDeviceClass.WATER, 0.1),
-        Ppe4ModeSensor(coordinator, entry),
         Ppe4StatusSensor(coordinator, entry),
     ])
 
@@ -154,22 +153,6 @@ class Ppe4Counter(Ppe4Sensor):
     def native_value(self):
         raw = self._raw()
         return None if raw is None else round(raw * self._scale, 3)
-
-
-class Ppe4ModeSensor(Ppe4Entity, SensorEntity):
-    """Register 1390 — 0 = profile, 1 = manual."""
-
-    _attr_translation_key = "mode"
-    _attr_icon = "mdi:state-machine"
-    _MODES = {0: "profile", 1: "manual"}
-
-    def __init__(self, coordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "mode")
-
-    @property
-    def native_value(self) -> str | None:
-        raw = self.coordinator.data.get(1390)
-        return None if raw is None else self._MODES.get(raw, str(raw))
 
 
 class Ppe4StatusSensor(Ppe4Entity, SensorEntity):

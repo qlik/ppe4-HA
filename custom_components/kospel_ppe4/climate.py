@@ -1,11 +1,11 @@
 """Climate (thermostat) entity for KOSPEL PPE4.
 
-Temperature follows the ACTIVE PROFILE: register 1389 holds the profile
-number (1..3), and each profile has its own setpoint register 1390+profile
-(×0.1 °C). Writing the master setpoint 1388 is ignored by the device in
-profile mode, so the thermostat reads the active profile and writes its
-register directly. Verified live: writing the active profile's register
-updates the effective setpoint (register 1140) immediately.
+Register 1390 selects what the heater follows: 0 = the manual setpoint
+(register 1391), 1..3 = a profile with its own setpoint (1391 + profile).
+Register 1140 always shows the setpoint in effect (×0.1 °C).
+Setting a temperature here does what the app does: it writes the manual
+setpoint and switches to manual, leaving the profiles untouched.
+Verified live on a 21/24 kW unit.
 Current temperature = outlet (register 1135).
 """
 from __future__ import annotations
@@ -25,6 +25,7 @@ from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .registers import ACTIVE_PROFILE, MANUAL_SETPOINT, SETPOINT
 from .sensor import Ppe4Entity
 
 _LOGGER = logging.getLogger(__name__)
@@ -70,14 +71,7 @@ class Ppe4Climate(Ppe4Entity, ClimateEntity):
 
     @property
     def target_temperature(self) -> float | None:
-        d = self.coordinator.data or {}
-        profile = d.get(1389)
-        if profile is not None and 1 <= profile <= 3:
-            raw = d.get(1390 + profile)
-        else:
-            raw = None
-        if raw is None:
-            raw = d.get(1140)  # effective setpoint (mirrors active profile)
+        raw = (self.coordinator.data or {}).get(SETPOINT)
         return None if raw is None else raw / 10
 
     @property
@@ -100,14 +94,10 @@ class Ppe4Climate(Ppe4Entity, ClimateEntity):
         if temp is None:
             return
         temp = min(max(float(temp), self.min_temp), self.max_temp)
-        d = self.coordinator.data or {}
-        profile = d.get(1389)
-        if profile is not None and 1 <= profile <= 3:
-            register = 1390 + profile
-        else:
-            register = 1388
         value = int(round(temp * 10))
-        await self._api.write(register, value)
+        await self._api.write(MANUAL_SETPOINT, value)
+        if (self.coordinator.data or {}).get(ACTIVE_PROFILE) != 0:
+            await self._api.write(ACTIVE_PROFILE, 0)
         # Small delay to let the device process the write before we
         # update our local state. This prevents a race condition where
         # the coordinator refreshes before the device has updated the
@@ -115,5 +105,5 @@ class Ppe4Climate(Ppe4Entity, ClimateEntity):
         await asyncio.sleep(0.5)
         if self.coordinator.data is None:
             self.coordinator.data = {}
-        self.coordinator.data[register] = value
+        self.coordinator.data.update({MANUAL_SETPOINT: value, ACTIVE_PROFILE: 0, SETPOINT: value})
         self.async_write_ha_state()

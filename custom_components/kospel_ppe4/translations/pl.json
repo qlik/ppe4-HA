@@ -57,9 +57,6 @@
       "water_month": {
         "name": "Woda zużyta w tym miesiącu"
       },
-      "mode": {
-        "name": "Tryb pracy"
-      },
       "status": {
         "name": "Status podgrzewacza"
       },
@@ -97,7 +94,13 @@
     },
     "select": {
       "profile": {
-        "name": "Aktywny profil"
+        "name": "Aktywny profil",
+        "state": {
+          "manual": "Ręczny",
+          "profile_1": "Profil 1",
+          "profile_2": "Profil 2",
+          "profile_3": "Profil 3"
+        }
       }
     }
   }

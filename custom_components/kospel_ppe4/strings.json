@@ -58,9 +58,6 @@
       "water_month": {
         "name": "Water used this month"
       },
-      "mode": {
-        "name": "Operating mode"
-      },
       "status": {
         "name": "Heater status"
       },
@@ -98,7 +95,13 @@
     },
     "select": {
       "profile": {
-        "name": "Active profile"
+        "name": "Active profile",
+        "state": {
+          "manual": "Manual",
+          "profile_1": "Profile 1",
+          "profile_2": "Profile 2",
+          "profile_3": "Profile 3"
+        }
       }
     }
   }
