@@ -87,6 +87,8 @@ class Ppe4Coordinator(DataUpdateCoordinator[dict[int, int]]):
     # Only ranges that exist on the device: a request touching an unmapped
     # register (e.g. 1440-1447, 1568-1570) returns broken JSON.
     LIVE_BLOCKS = ((1128, 25),)
+    # While water is flowing, poll this often so short draws show up in flow and power.
+    FLOW_INTERVAL = _dt.timedelta(seconds=1)
     SLOW_BLOCKS = (
         (1000, 44),
         (1388, 8),
@@ -104,6 +106,7 @@ class Ppe4Coordinator(DataUpdateCoordinator[dict[int, int]]):
             update_interval=_dt.timedelta(seconds=scan_interval),
         )
         self.api = api
+        self._idle_interval = _dt.timedelta(seconds=scan_interval)
         self._last_slow = 0.0
 
     async def _async_update_data(self) -> dict[int, int]:
@@ -138,6 +141,8 @@ class Ppe4Coordinator(DataUpdateCoordinator[dict[int, int]]):
             raise UpdateFailed("all register reads failed")
         if slow_due:
             self._last_slow = now
+        drawing = merged.get(1137, 0) > 0 or merged.get(1138, 0) > 0
+        self.update_interval = min(self.FLOW_INTERVAL, self._idle_interval) if drawing else self._idle_interval
         return merged
 
 

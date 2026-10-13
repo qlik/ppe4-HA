@@ -9,7 +9,7 @@ from homeassistant import config_entries
 
 OPTIONS_SCHEMA = vol.Schema(
     {
-        vol.Required("scan_interval", default=5): vol.All(vol.Coerce(int), vol.Range(min=3, max=60)),
+        vol.Required("scan_interval", default=5): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
     }
 )
 

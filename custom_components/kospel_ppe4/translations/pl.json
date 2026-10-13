@@ -25,7 +25,7 @@
           "host": "Adres IP",
           "scan_interval": "Interwał odświeżania na żywo (sekundy)"
         },
-        "description": "Dane na żywo (temperatury, przepływ, moc) odświeżają się w tym interwale. Statystyki i tak aktualizują się co 30 s."
+        "description": "Dane na żywo (temperatury, przepływ, moc) odświeżają się w tym interwale, a podczas poboru wody co sekundę. Statystyki i tak aktualizują się co 30 s."
       }
     }
   },
