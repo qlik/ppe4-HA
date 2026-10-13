@@ -23,9 +23,11 @@
       "init": {
         "data": {
           "host": "IP address",
-          "scan_interval": "Live polling interval (seconds)"
+          "scan_interval": "Live polling interval (seconds)",
+          "flow_interval": "Polling interval while water is flowing (seconds)",
+          "stats_interval": "Statistics interval (seconds)"
         },
-        "description": "Live data (temperatures, flow, power) refreshes at this interval, and every second while water is flowing. Statistics update every 30 s regardless."
+        "description": "Live data (temperatures, flow, power) refreshes at the live interval, or at the flow interval while water is flowing if that is shorter. Statistics, profiles and limits refresh at the statistics interval."
       }
     }
   },

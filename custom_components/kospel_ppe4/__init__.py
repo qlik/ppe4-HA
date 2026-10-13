@@ -17,7 +17,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers import config_validation as cv
 
-from .const import DOMAIN
+from .const import DEFAULT_FLOW_INTERVAL, DEFAULT_SCAN_INTERVAL, DEFAULT_STATS_INTERVAL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,8 +28,6 @@ PLATFORMS: list[Platform] = [
     Platform.CLIMATE,
     Platform.SELECT,
 ]
-
-SCAN_INTERVAL = 30
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -79,16 +77,15 @@ class Ppe4Api:
 class Ppe4Coordinator(DataUpdateCoordinator[dict[int, int]]):
     """Poll the heater for all known registers.
 
-    Live block (1128+, temperatures/flow/power) is refreshed every 5 s to match
-    the official app; slow blocks (limits, profiles, statistics) every 30 s.
+    Live block (1128+, temperatures/flow/power) is refreshed at the live interval,
+    faster while water is flowing; slow blocks (limits, profiles, statistics) at
+    the statistics interval.
     """
 
     # (start, count) blocks we care about — max 48 registers per request.
     # Only ranges that exist on the device: a request touching an unmapped
     # register (e.g. 1440-1447, 1568-1570) returns broken JSON.
     LIVE_BLOCKS = ((1128, 25),)
-    # While water is flowing, poll this often so short draws show up in flow and power.
-    FLOW_INTERVAL = _dt.timedelta(seconds=1)
     SLOW_BLOCKS = (
         (1000, 44),
         (1388, 8),
@@ -98,7 +95,14 @@ class Ppe4Coordinator(DataUpdateCoordinator[dict[int, int]]):
         (1640, 32),  # water: 7 days, year, previous year, total, months
     )
 
-    def __init__(self, hass: HomeAssistant, api: Ppe4Api, scan_interval: int = 5) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        api: Ppe4Api,
+        scan_interval: int = DEFAULT_SCAN_INTERVAL,
+        flow_interval: int = DEFAULT_FLOW_INTERVAL,
+        stats_interval: int = DEFAULT_STATS_INTERVAL,
+    ) -> None:
         super().__init__(
             hass,
             _LOGGER,
@@ -107,11 +111,14 @@ class Ppe4Coordinator(DataUpdateCoordinator[dict[int, int]]):
         )
         self.api = api
         self._idle_interval = _dt.timedelta(seconds=scan_interval)
+        # While water is flowing, poll faster so short draws show up in flow and power.
+        self._flow_interval = min(_dt.timedelta(seconds=flow_interval), self._idle_interval)
+        self._stats_interval = stats_interval
         self._last_slow = 0.0
 
     async def _async_update_data(self) -> dict[int, int]:
         now = time.monotonic()
-        slow_due = now - self._last_slow > SCAN_INTERVAL - 2
+        slow_due = now - self._last_slow > self._stats_interval - 2
         blocks = list(self.LIVE_BLOCKS)
         if slow_due:
             blocks += list(self.SLOW_BLOCKS)
@@ -142,7 +149,7 @@ class Ppe4Coordinator(DataUpdateCoordinator[dict[int, int]]):
         if slow_due:
             self._last_slow = now
         drawing = merged.get(1137, 0) > 0 or merged.get(1138, 0) > 0
-        self.update_interval = min(self.FLOW_INTERVAL, self._idle_interval) if drawing else self._idle_interval
+        self.update_interval = self._flow_interval if drawing else self._idle_interval
         return merged
 
 
@@ -150,8 +157,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     host = entry.data[CONF_HOST]
     session = async_get_clientsession(hass)
     api = Ppe4Api(host, session)
-    interval = int(entry.options.get("scan_interval", 5))
-    coordinator = Ppe4Coordinator(hass, api, interval)
+    coordinator = Ppe4Coordinator(
+        hass,
+        api,
+        int(entry.options.get("scan_interval", DEFAULT_SCAN_INTERVAL)),
+        int(entry.options.get("flow_interval", DEFAULT_FLOW_INTERVAL)),
+        int(entry.options.get("stats_interval", DEFAULT_STATS_INTERVAL)),
+    )
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = Ppe4RuntimeData(api=api, coordinator=coordinator)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
