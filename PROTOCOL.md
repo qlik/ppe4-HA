@@ -5,6 +5,9 @@
 - REST JSON, User-Agent aplikacji: `KOSPEL RESTClient/1.0`
 - Odpowiedź: `{"ver":"1.0","status":"OK","status_value":"0","res":{"<rejestr>":<wartość>,...}}`
 - Rejestry = MODBUS-like adresy 16-bit; statystyki są 32-bit (para rejestrów lo/hi: 1520/1521 itd.)
+- Zmapowany obszar to 1000–1895. Zakres obejmujący nieistniejący rejestr (np. 1440–1447, 1568–1570) zwraca zepsuty JSON: `"res":}}`
+- Serwer HTTP gubi połączenia równoległe — zapytania trzeba wysyłać pojedynczo
+- Aplikacja KOSPEL opisuje miesiące od bieżącego wstecz („styczeń” = bieżący miesiąc); rejestry są ułożone kalendarzowo
 - Urządzenie ma też stronę konfiguracji WiFi pod `http://<ip>/` (AP `ppe4_0000xxxx`, hasło domyślne `12345678`, config AP: 192.168.8.1)
 
 ## Odczyt
@@ -31,9 +34,17 @@
 | 1394/1395 | limity profili | ×0.1 °C |
 | 1008/1009 | min/max nastawy (300..600) | ×0.1 °C |
 | 1143/1144 | moce (15000, 10000 W) | — |
-| 1520 | energia — miesiąc (32-bit lo; para z 1521) | ÷1000 kWh |
-| 1578–1638 | woda dziennie, 31 dni od dziś wstecz | ×0.1 l |
-| 1644/1645 | woda — miesiąc (para 32-bit) | ÷100 l |
+| 1448 / 1576 | dzień tygodnia (1 = poniedziałek), przed tablicą dni energii / wody | — |
+| 1450–1511 | energia dziennie, 31 par, od dziś wstecz | Wh |
+| 1512 | energia — ostatnie 7 dni (suma krocząca) | Wh |
+| 1514 / 1516 / 1518 | energia — bieżący rok / poprzedni rok / licznik całkowity | Wh |
+| 1520–1543 | energia miesięcznie, bieżący rok, 12 par od stycznia | Wh |
+| 1544–1567 | energia miesięcznie, poprzedni rok, 12 par od stycznia | Wh |
+| 1578–1639 | woda dziennie, 31 par, od dziś wstecz | ×0.1 l |
+| 1640 | woda — ostatnie 7 dni (suma krocząca) | ×0.1 l |
+| 1642 / 1644 / 1646 | woda — bieżący rok / poprzedni rok / licznik całkowity | ×0.1 l |
+| 1648–1671 | woda miesięcznie, bieżący rok, 12 par od stycznia | ×0.1 l |
+| 1672–1695 | woda miesięcznie, poprzedni rok, 12 par od stycznia | ×0.1 l |
 
 ## Błędy
 

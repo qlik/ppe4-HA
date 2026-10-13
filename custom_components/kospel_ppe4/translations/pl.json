@@ -65,6 +65,18 @@
       },
       "energy_today": {
         "name": "Energia zużyta dzisiaj"
+      },
+      "energy_total": {
+        "name": "Energia zużyta łącznie"
+      },
+      "energy_year": {
+        "name": "Energia zużyta w tym roku"
+      },
+      "water_total": {
+        "name": "Woda zużyta łącznie"
+      },
+      "water_year": {
+        "name": "Woda zużyta w tym roku"
       }
     },
     "binary_sensor": {

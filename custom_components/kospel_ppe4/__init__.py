@@ -48,10 +48,12 @@ class Ppe4Api:
     def __init__(self, host: str, session: aiohttp.ClientSession) -> None:
         self._host = host
         self._session = session
+        # The heater's HTTP server drops parallel connections: one request at a time.
+        self._lock = asyncio.Lock()
 
     async def read(self, start: int, count: int) -> dict[int, int]:
         url = f"http://{self._host}/api/{start}/{count}"
-        async with self._session.get(
+        async with self._lock, self._session.get(
             url, headers={"User-Agent": "KOSPEL RESTClient/1.0"}, timeout=aiohttp.ClientTimeout(total=10)
         ) as resp:
             resp.raise_for_status()
@@ -62,7 +64,7 @@ class Ppe4Api:
 
     async def write(self, register: int, value: int) -> None:
         url = f"http://{self._host}/api/write"
-        async with self._session.post(
+        async with self._lock, self._session.post(
             url,
             json={str(register): value},
             headers={"User-Agent": "KOSPEL RESTClient/1.0"},
@@ -81,9 +83,18 @@ class Ppe4Coordinator(DataUpdateCoordinator[dict[int, int]]):
     the official app; slow blocks (limits, profiles, statistics) every 30 s.
     """
 
-    # (start, count) blocks we care about — max 48 registers per request
+    # (start, count) blocks we care about — max 48 registers per request.
+    # Only ranges that exist on the device: a request touching an unmapped
+    # register (e.g. 1440-1447, 1568-1570) returns broken JSON.
     LIVE_BLOCKS = ((1128, 25),)
-    SLOW_BLOCKS = ((1000, 44), (1388, 8), (1390, 6), (1510, 14), (1520, 48), (1576, 48), (1640, 8))
+    SLOW_BLOCKS = (
+        (1000, 44),
+        (1388, 8),
+        (1448, 4),   # energy: today
+        (1512, 32),  # energy: 7 days, year, previous year, total, months
+        (1576, 4),   # water: today
+        (1640, 32),  # water: 7 days, year, previous year, total, months
+    )
 
     def __init__(self, hass: HomeAssistant, api: Ppe4Api, scan_interval: int = 5) -> None:
         super().__init__(
@@ -105,10 +116,12 @@ class Ppe4Coordinator(DataUpdateCoordinator[dict[int, int]]):
         # The device's HTTP server is flaky under load: a single dropped
         # connection must never take down the whole coordinator, otherwise
         # every entity goes unavailable (and setup fails on first refresh).
-        results = await asyncio.gather(
-            *(self.api.read(s, c) for s, c in blocks),
-            return_exceptions=True,
-        )
+        results: list[dict[int, int] | Exception] = []
+        for start, count in blocks:
+            try:
+                results.append(await self.api.read(start, count))
+            except Exception as err:  # noqa: BLE001 - one failed block must not drop the others
+                results.append(err)
 
         # Carry over previously read registers; successful reads overwrite.
         merged: dict[int, int] = dict(self.data or {})
@@ -139,6 +152,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
