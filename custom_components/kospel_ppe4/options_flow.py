@@ -11,9 +11,15 @@ from .const import DEFAULT_FLOW_INTERVAL, DEFAULT_SCAN_INTERVAL, DEFAULT_STATS_I
 
 OPTIONS_SCHEMA = vol.Schema(
     {
-        vol.Required("scan_interval", default=DEFAULT_SCAN_INTERVAL): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
-        vol.Required("flow_interval", default=DEFAULT_FLOW_INTERVAL): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
-        vol.Required("stats_interval", default=DEFAULT_STATS_INTERVAL): vol.All(vol.Coerce(int), vol.Range(min=5, max=600)),
+        vol.Required("scan_interval", default=DEFAULT_SCAN_INTERVAL): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=60)
+        ),
+        vol.Required("flow_interval", default=DEFAULT_FLOW_INTERVAL): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=60)
+        ),
+        vol.Required("stats_interval", default=DEFAULT_STATS_INTERVAL): vol.All(
+            vol.Coerce(int), vol.Range(min=5, max=600)
+        ),
     }
 )
 

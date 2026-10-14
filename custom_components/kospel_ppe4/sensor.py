@@ -133,6 +133,7 @@ class Ppe4Sensor(Ppe4Entity, SensorEntity):
 class Ppe4Counter(Ppe4Sensor):
     """32-bit lo/hi counter; `monthly` picks the current month from a January-first block."""
 
+    # pylint: disable-next=too-many-arguments
     def __init__(self, coordinator, entry, register: int, key: str, unit,
                  device_class, scale: float, monthly: bool = False) -> None:  # noqa: PLR0913 - explicit config
         super().__init__(coordinator, entry, register, key, unit, device_class, scale,

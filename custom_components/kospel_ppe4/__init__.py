@@ -149,6 +149,7 @@ class Ppe4Coordinator(DataUpdateCoordinator[dict[int, int]]):
         if slow_due:
             self._last_slow = now
         drawing = merged.get(1137, 0) > 0 or merged.get(1138, 0) > 0
+        # pylint: disable-next=attribute-defined-outside-init  # defined by DataUpdateCoordinator
         self.update_interval = self._flow_interval if drawing else self._idle_interval
         return merged
 
